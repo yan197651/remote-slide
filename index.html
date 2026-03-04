@@ -69,7 +69,7 @@
             transition: transform 0.8s ease;
         }
 
-        /* 摄像头画面预览及提示容器 */
+        /* 摄像头画面预览容器 */
         #video-container {
             position: fixed;
             bottom: 20px;
@@ -98,7 +98,6 @@
             transform: scaleX(-1);
         }
 
-        /* 操作提示文字样式 */
         .gesture-instructions {
             font-size: 10px;
             color: #4b5563;
@@ -116,8 +115,8 @@
             top: 20px;
             right: 20px;
             width: 70px; 
-            height: 240px;
-            padding: 20px 10px;
+            height: 260px;
+            padding: 15px 10px;
             background: #1e1e1e; 
             border-radius: 12px; 
             box-shadow: 
@@ -126,12 +125,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-between;
+            justify-content: space-around;
             z-index: 100;
             border: 2px solid #444; 
         }
 
-        /* 模拟顶部红外发射口 */
         .remote-control::before {
             content: '';
             position: absolute;
@@ -143,30 +141,28 @@
             border-bottom-right-radius: 4px;
         }
 
-        /* 垂直滑块轨道背景（调细后的凹槽效果） */
+        /* 垂直滑块轨道容器 - 去掉了背景色和阴影 */
         .slider-container {
-            width: 8px; /* 调细了轨道容器 */
+            width: 28px; 
             height: 160px;
-            background: #000;
-            border-radius: 4px;
+            background: transparent; /* 去掉深色细柱子背景 */
             display: flex;
             justify-content: center;
             align-items: center;
             position: relative;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
         }
 
         input[type=range].vertical-slider {
             -webkit-appearance: none;
-            width: 140px; 
-            height: 2px; /* 调细了实际轨道线 */
+            width: 160px; 
+            height: 100%; 
             background: transparent; 
             transform: rotate(-90deg);
             outline: none;
             cursor: pointer;
         }
 
-        /* 滑块滑块头 */
+        /* 滑块按钮 */
         input[type=range].vertical-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 28px;
@@ -179,13 +175,19 @@
             background-image: linear-gradient(to bottom, #fff, #bbb);
         }
 
-        .remote-label {
-            font-size: 9px;
-            color: #888;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            text-align: center;
+        /* 为了兼容性隐藏默认轨道 */
+        input[type=range].vertical-slider::-webkit-slider-runnable-track {
+            background: transparent;
+            border: none;
+        }
+
+        .remote-icon {
+            font-size: 18px;
+            color: #666;
+            text-shadow: 0 1px 1px rgba(255,255,255,0.1);
+            user-select: none;
+            line-height: 1;
+            padding: 5px 0;
         }
 
         /* 状态指示器 */
@@ -219,7 +221,6 @@
             box-shadow: 0 0 10px #10b981;
         }
 
-        /* 密码提示框样式 */
         #password-alert {
             position: fixed;
             top: 20px;
@@ -246,12 +247,10 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen">
 
-    <!-- 密码提示框 -->
     <div id="password-alert">
         Please return to the questionnaire and continue answering the remaining questions. Your password is <strong>496542</strong>.
     </div>
 
-    <!-- 顶部的系统状态 -->
     <div class="status-badge">
         <div id="status-dot" class="dot"></div>
         <span id="status-text">Initializing camera...</span>
@@ -259,7 +258,7 @@
 
     <!-- 方形遥控器 -->
     <div class="remote-control">
-        <div class="remote-label">OPEN</div>
+        <div class="remote-icon">▲</div>
         <div class="slider-container">
             <input type="range" 
                    id="blind-slider" 
@@ -267,30 +266,24 @@
                    min="0" 
                    max="100" 
                    value="0" 
-                   oninput="handleSliderChange(this.value)">
+                   onchange="handleSliderChange(this.value)">
         </div>
-        <div class="remote-label">CLOSE</div>
+        <div class="remote-icon">▼</div>
     </div>
 
-    <!-- 模拟窗户区域 -->
     <div class="window-container">
         <div class="scenery"></div>
         <div class="scenery" style="left: 150px; height: 120px; background: #81c784;"></div>
-
-        <!-- 百叶窗主体 -->
-        <div id="blinds" class="blinds-wrapper">
-            <!-- 由脚本生成 25 个叶片 -->
-        </div>
+        <div id="blinds" class="blinds-wrapper"></div>
     </div>
 
-    <!-- 摄像头实时预览及提示内容 -->
     <div id="video-container">
         <div class="video-wrapper">
             <video id="input_video" playsinline></video>
         </div>
         <div class="gesture-instructions">
-            To raise the blind: Slide the slider to the TOP.<br>
-            To lower the blind: Slide the slider to the BOTTOM.
+            To raise the blind: Slide the slider to the top.<br>
+            To lower the blind: Slide the slider to the bottom.
         </div>
     </div>
 
@@ -300,9 +293,7 @@
         const statusDot = document.getElementById('status-dot');
         const videoElement = document.getElementById('input_video');
         const passwordAlert = document.getElementById('password-alert');
-        const blindSlider = document.getElementById('blind-slider');
 
-        // 初始化百叶窗叶片
         const SLAT_COUNT = 25;
         for (let i = 0; i < SLAT_COUNT; i++) {
             const slat = document.createElement('div');
@@ -315,18 +306,16 @@
         let isCameraReady = false; 
         let timerStarted = false;
 
-        // 处理滑块数值变化
         function handleSliderChange(value) {
             const val = parseInt(value);
 
-            // 第一次交互启动计时器
             if (!timerStarted) {
                 timerStarted = true;
                 setTimeout(() => {
                     if (isCameraReady && hasInteracted) {
                         passwordAlert.style.display = 'block';
                     }
-                }, 20000); // 20秒
+                }, 20000);
             }
 
             if (!isCameraReady) {
@@ -338,17 +327,14 @@
             hasInteracted = true;
             statusText.style.color = "#1f2937";
 
-            // 判定开启：拉到顶 (100)
-            if (val >= 95 && !isOpened) {
+            if (val === 100 && !isOpened) {
                 setBlindsState(true);
             } 
-            // 判定关闭：拉到底 (0-5)
-            else if (val <= 5 && isOpened) {
+            else if (val === 0 && isOpened) {
                 setBlindsState(false);
             }
         }
 
-        // 执行开关窗逻辑
         function setBlindsState(open) {
             isOpened = open;
             if (isOpened) {
@@ -362,21 +348,19 @@
             }
         }
 
-        // 启动摄像头控制
         const camera = new Camera(videoElement, {
             onFrame: async () => {},
             width: 640,
             height: 480
         });
 
-        // 摄像头开启成功后的逻辑
         camera.start().then(() => {
             isCameraReady = true; 
             statusDot.classList.add('active');
-            statusText.innerText = "System Ready: Please use the slider to control.";
+            statusText.innerText = "System Ready: Use slider to control.";
         }).catch(err => {
             isCameraReady = false;
-            statusText.innerText = "Camera Access Required to use Remote Control.";
+            statusText.innerText = "Camera Access Required.";
             statusText.style.color = "#ef4444";
         });
     </script>
